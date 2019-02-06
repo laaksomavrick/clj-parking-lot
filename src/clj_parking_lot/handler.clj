@@ -1,11 +1,29 @@
 (ns clj-parking-lot.handler
-  (:require [compojure.core :refer :all]
-            [compojure.route :as route]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
+  (:require [compojure.api.sweet :refer :all]
+            [ring.util.http-response :refer :all]
+            [schema.core :as s]))
 
-(defroutes app-routes
-  (GET "/" [] "Hello World")
-  (route/not-found "Not Found"))
+(s/defschema Ticket
+  {:ticket {:id s/Int}})
+
+(defonce tickets (atom (hash-map)))
+
+(defn create-ticket! []
+  (let [id (inc (count @tickets))
+        ticket {:id id}]
+    (swap! tickets assoc id ticket)
+    ticket))
 
 (def app
-  (wrap-defaults app-routes site-defaults))
+  (api
+   {:swagger
+    {:ui "/"
+     :spec "/swagger.json"
+     :data {:info {:title "clj-parking-lot"
+                   :description "Compojure Api example"}
+            :tags [{:name "api", :description "some apis"}]}}}
+
+   (POST "/customers" []
+     :return Ticket
+     :summary "Issues a new ticket for the requesting client"
+     (ok {:ticket (create-ticket!)}))))
